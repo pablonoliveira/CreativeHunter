@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, send_from_directory, jsonify
+from flask import Flask, request, render_template, send_from_directory, jsonify, redirect, url_for
 from flask_socketio import SocketIO, emit
 import yt_dlp
 import os
@@ -34,6 +34,8 @@ def index():
                 args=(download_id, url, tipo),
                 daemon=True
             ).start()
+            # REDIRECT para GET puro (quebra o loop de POST)
+            return redirect(url_for('index'))
         else:
             # Nada de usar cache antigo: apenas mensagem suave
             mensagem = "Cole um link para iniciar um novo download."
@@ -83,12 +85,14 @@ def baixar_com_progresso(download_id, url, tipo='video'):
             socketio.emit('progress_update', status)
             socketio.emit('download_complete')
 
+    # CONFIG ESPECÍFICA POR TIPO
     playlist_opts = {
-        'extract_flat': False,
-        'noplaylist': False,
+        'extract_flat': False,  # baixa conteúdo real, não só metadados
+        'noplaylist': False,    # permite carrossel/playlist completa
     }
 
     if tipo == 'imagem':
+        # Foco em imagem (post, carrossel); yt-dlp extrai frames/thumbnail
         ydl_opts = {
             'outtmpl': os.path.join(
                 PASTA_DOWNLOADS, '[%(uploader)s] %(title)s.%(ext)s'
@@ -98,6 +102,7 @@ def baixar_com_progresso(download_id, url, tipo='video'):
             **playlist_opts
         }
     else:
+        # Foco em vídeo/reel
         ydl_opts = {
             'outtmpl': os.path.join(
                 PASTA_DOWNLOADS, '[%(uploader)s] %(title)s.%(ext)s'
@@ -110,13 +115,15 @@ def baixar_com_progresso(download_id, url, tipo='video'):
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
+
+            # Se for playlist/carrossel, contabiliza entradas válidas
             if isinstance(info, dict) and 'entries' in info and info['entries']:
                 total = len([e for e in info['entries'] if e])
                 status['status'] = f'✅ {total} criativos salvos!'
                 socketio.emit('progress_update', status)
 
     except Exception as e:
-        status['status'] = f'❌ Erro CreativeHunter: {str(e)[:70]}'
+        status['status'] = f'❌ {str(e)[:70]}'
         socketio.emit('progress_update', status)
         socketio.emit('download_error')
 
@@ -134,6 +141,7 @@ def handle_connect():
 
 @app.route('/download/<path:filename>')
 def download(filename):
+    # pequena sanitização de caminho
     safe_name = os.path.basename(filename)
     return send_from_directory(PASTA_DOWNLOADS, safe_name, as_attachment=True)
 
@@ -142,6 +150,7 @@ def download(filename):
 def get_files():
     if os.path.exists(PASTA_DOWNLOADS):
         files = sorted(os.listdir(PASTA_DOWNLOADS), reverse=True)[:12]
+        # retorna só arquivos reais
         return jsonify(
             [f for f in files if os.path.isfile(os.path.join(PASTA_DOWNLOADS, f))]
         )
@@ -155,4 +164,3 @@ if __name__ == '__main__':
     
     print(f"🔥 CreativeHunter rodando em porta {port}")
     socketio.run(app, host='0.0.0.0', port=port, debug=debug_mode, allow_unsafe_werkzeug=True)
-
