@@ -5,9 +5,9 @@
 [![Status](https://img.shields.io/badge/Status-Active-brightgreen?style=flat-square)](https://creativehunter-production.up.railway.app)
 [![GitHub](https://img.shields.io/badge/GitHub-CreativeHunter-blue?style=flat-square&logo=github)](https://github.com/pablonoliveira/CreativeHunter)
 [![Live](https://img.shields.io/badge/Live-Railway-0B0D17?style=flat-square&logo=railway)](https://creativehunter-production.up.railway.app)
-[![Python](https://img.shields.io/badge/Python-3.8+-yellow?style=flat-square&logo=python)](https://python.org)
-[![Flask](https://img.shields.io/badge/Flask-Socket.IO-gray?style=flat-square&logo=flask)](https://flask.palletsprojects.com)
-[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.8%2B-brightgreen.svg)](https://python.org)  
+[![Flask](https://img.shields.io/badge/flask-3.0%2B-red.svg)](https://flask.palletsprojects.com/)  
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **CreativeHunter** é uma aplicação web em **Python + Flask + Socket.IO** para baixar **vídeos e imagens** de Instagram (Reels, Posts, Carrossel), TikTok, **Facebook Ads Library** e +1.000 sites suportados pelo `yt-dlp`.
 
