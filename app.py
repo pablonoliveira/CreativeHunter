@@ -154,4 +154,5 @@ if __name__ == '__main__':
     debug_mode = os.getenv('DEBUG', 'False') == 'True'
     
     print(f"🔥 CreativeHunter rodando em porta {port}")
-    socketio.run(app, host='0.0.0.0', port=port, debug=debug_mode)
+    socketio.run(app, host='0.0.0.0', port=port, debug=debug_mode, allow_unsafe_werkzeug=True)
+
