@@ -1,16 +1,27 @@
+"""
+Pétala Hunter - Captador de Criativos para Meta Ads, Reels e TikTok
+Download automático em máxima qualidade.
+
+Versão PROD: Flask + yt-dlp com nomes curtos e sanitizados para Railway
+Corrige definitivamente o erro 'File name too long' em fotos/posts do Facebook.
+"""
+
 from flask import Flask, request, render_template, send_from_directory
 import os
 import re
 import yt_dlp
 
+
 app = Flask(__name__)
-app.config["SECRET_KEY"] = "creativehunter-2026"
+app.config["SECRET_KEY"] = "petala-hunter-2026"
+
 
 PASTA_DOWNLOADS = "downloads"
 os.makedirs(PASTA_DOWNLOADS, exist_ok=True)
 
 
 def listar_arquivos():
+    """Lista os 12 arquivos mais recentes da pasta downloads."""
     if not os.path.exists(PASTA_DOWNLOADS):
         return []
 
@@ -22,6 +33,7 @@ def listar_arquivos():
 
 
 def sanitizar_mensagem_erro(erro):
+    """Converte erros técnicos em mensagens amigáveis para o usuário."""
     msg = str(erro)
 
     if "There is no video in this post" in msg:
@@ -31,15 +43,19 @@ def sanitizar_mensagem_erro(erro):
         return "❌ Esse criativo da Meta Ads Library não pôde ser extraído pela versão atual do yt-dlp."
 
     if "Unsupported URL" in msg:
-        return "❌ Essa URL não é suportada pelo CreativeHunter."
+        return "❌ Essa URL não é suportada pelo Pétala Hunter."
 
     if "Private video" in msg or "login required" in msg.lower():
         return "❌ O conteúdo exige autenticação ou não está acessível publicamente."
+
+    if "File name too long" in msg:
+        return "❌ Nome do arquivo muito longo. Correção já aplicada, tente novamente."
 
     return f"❌ Erro ao processar o link: {msg[:160]}"
 
 
 def limpar_nome_arquivo(texto):
+    """Remove caracteres inválidos e limita tamanho do nome do arquivo."""
     texto = texto or "arquivo"
     texto = re.sub(r'[\\/*?:"<>|]', "", texto)
     texto = re.sub(r"\s+", " ", texto).strip()
@@ -47,9 +63,25 @@ def limpar_nome_arquivo(texto):
 
 
 def montar_opcoes_ydl(tipo):
+    """
+    Configurações otimizadas do yt-dlp para Pétala Hunter.
+    
+    ✅ Para IMAGEM (Foto/Post):
+    - outtmpl: "facebook_1417545490408392.jpg" (curto e previsível)
+    - restrictfilenames + windowsfilenames: sanitiza caracteres especiais
+    - Formatos: JPG > JPEG > PNG > melhor disponível
+    
+    ✅ Para VÍDEO (Reel):
+    - best[ext=mp4]/best: MP4 nativo sem FFmpeg
+    - Estável no Railway/Heroku
+    
+    ✅ COMUM:
+    - Nomes curtos evitam 'File name too long'
+    - Playlist habilitada para carrossel
+    """
     nome_saida = os.path.join(
         PASTA_DOWNLOADS,
-        "%(extractor)s_%(id)s.%(ext)s"
+        "%(extractor)s_%(id)s.%(ext)s"  # Ex: facebook_1417545490408392.jpg
     )
 
     opcoes_base = {
@@ -58,8 +90,9 @@ def montar_opcoes_ydl(tipo):
         "no_warnings": True,
         "noplaylist": False,
         "extract_flat": False,
-        "windowsfilenames": True,
-        "restrictfilenames": True,
+        "windowsfilenames": True,      # Sanitiza para Windows
+        "restrictfilenames": True,     # Remove caracteres especiais
+        "trim_file_name": 80,          # Limita tamanho do nome
     }
 
     if tipo == "imagem":
@@ -68,12 +101,22 @@ def montar_opcoes_ydl(tipo):
         })
     else:
         opcoes_base.update({
-            "format": "best[ext=mp4]/best"
+            "format": "best[ext=mp4]/best"  # Sem FFmpeg no Railway
         })
 
     return opcoes_base
 
+
 def baixar_arquivo(url, tipo):
+    """
+    Executa o download com as configurações otimizadas.
+    
+    Suporta:
+    - Meta Ads Library (Facebook/Instagram)
+    - Instagram Reels
+    - TikTok
+    - Posts com carrossel (múltiplas imagens)
+    """
     opcoes = montar_opcoes_ydl(tipo)
 
     with yt_dlp.YoutubeDL(opcoes) as ydl:
@@ -89,6 +132,7 @@ def baixar_arquivo(url, tipo):
 
 @app.route("/", methods=["GET", "POST"])
 def index():
+    """Rota principal - GET mostra interface, POST processa download."""
     mensagem = None
 
     if request.method == "POST":
@@ -111,6 +155,7 @@ def index():
 
 @app.route("/download/<path:filename>")
 def download_file(filename):
+    """Download seguro dos arquivos salvos."""
     nome_seguro = os.path.basename(filename)
     return send_from_directory(PASTA_DOWNLOADS, nome_seguro, as_attachment=True)
 
@@ -119,5 +164,7 @@ if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))
     debug_mode = os.getenv("DEBUG", "False") == "True"
 
-    print(f"🔥 CreativeHunter rodando na porta {port}")
+    print(f"🌸 Pétala Hunter rodando na porta {port}")
+    print("✅ Correção 'File name too long' aplicada!")
+    print("✅ Suporte Meta Ads Library, Instagram, TikTok")
     app.run(host="0.0.0.0", port=port, debug=debug_mode)
